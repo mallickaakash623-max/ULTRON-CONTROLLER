@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JARVIS — Arc Reactor Holographic Interface</title>
+  <meta name="description" content="Arc Reactor 3D viewer controlled by hand gestures." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Boot screen -->
+  <div id="boot-screen">
+    <div class="boot-logo">
+      <div class="arc-reactor">
+        <div class="arc-inner"></div>
+        <div class="arc-ring"></div>
+        <div class="arc-ring arc-ring-2"></div>
+        <div class="arc-glow"></div>
+      </div>
+      <div class="boot-text">
+        <div class="boot-title">J.A.R.V.I.S</div>
+        <div class="boot-sub">HOLOGRAPHIC INTERFACE v4.2</div>
+      </div>
+    </div>
+    <div class="boot-bars">
+      <div class="boot-bar" style="--d:0s"></div>
+      <div class="boot-bar" style="--d:0.2s"></div>
+      <div class="boot-bar" style="--d:0.4s"></div>
+      <div class="boot-bar" style="--d:0.6s"></div>
+      <div class="boot-bar" style="--d:0.8s"></div>
+    </div>
+    <div class="boot-status" id="boot-status">INITIALIZING SYSTEMS...</div>
+  </div>
+
+  <!-- Main interface -->
+  <div id="app" class="hidden">
+    <!-- Camera feed (hidden, used for hand tracking) -->
+    <video id="camera-feed" autoplay playsinline muted></video>
+
+    <!-- Layer 1: Unified Three.js canvas (Grid + Model) -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Loading overlay for GLTF model -->
+    <div id="model-container">
+      <div id="model-loading">
+        <div class="ml-spinner">
+          <div class="ml-ring"></div>
+          <div class="ml-ring ml-ring-2"></div>
+        </div>
+        <div class="ml-text">LOADING ARC REACTOR...</div>
+        <div class="ml-sub" id="ml-pct">0%</div>
+      </div>
+    </div>
+
+    <!-- Scanlines -->
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    <div class="hologram-flicker"></div>
+
+    <!-- Camera preview canvas -->
+    <canvas id="camera-canvas"></canvas>
+    <div class="cam-label">HAND TRACKING FEED</div>
+
+    <!-- Top HUD bar -->
+    <div class="hud-top">
+      <div class="hud-corner hud-corner-tl"></div>
+      <div class="hud-corner hud-corner-tr"></div>
+      <div class="hud-brand">
+        <span class="brand-text">STARK INDUSTRIES</span>
+        <span class="brand-sub">HOLOGRAPHIC PROJECTION SYSTEM</span>
+      </div>
+      <div class="hud-center-top">
+        <div class="model-name-display">ARC REACTOR</div>
+      </div>
+      <div class="hud-right-top">
+        <div class="hud-time" id="hud-time">--:--:--</div>
+        <div class="hud-status">
+          <span class="status-dot" id="status-tracking"></span>
+          <span id="status-label">INITIALIZING</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Left panel -->
+    <div class="hud-panel hud-left">
+      <div class="panel-header">VEHICLE DATA</div>
+      <div class="panel-row"><span class="row-label">CHASSIS</span><span class="row-value">VIBRANIUM</span></div>
+      <div class="panel-separator"></div>
+      <div class="panel-row"><span class="row-label">ENGINE</span><span class="row-value">ARC REACTOR</span></div>
+      <div class="panel-separator"></div>
+      <div class="panel-row"><span class="row-label">POWER</span><span class="row-val-big">50 GJ/s</span></div>
+      <div class="panel-separator"></div>
+      <div class="panel-row"><span class="row-label">WEIGHT</span><span class="row-value">1,500 LBS</span></div>
+      <div class="panel-separator"></div>
+      <div class="panel-row"><span class="row-label">TOP SPEED</span><span class="row-value">FLIGHT C.</span></div>
+      <div class="panel-separator"></div>
+      <div class="panel-row"><span class="row-label">CREATOR</span><span class="row-value">TONY STARK</span></div>
+      <div class="panel-separator"></div>
+
+      <div class="panel-header">SCAN STATUS</div>
+      <div class="scan-ring">
+        <svg viewBox="0 0 100 100">
+          <circle class="scan-bg" cx="50" cy="50" r="42"/>
+          <circle class="scan-fill" id="scan-fill" cx="50" cy="50" r="42"/>
+        </svg>
+        <div class="scan-pct" id="scan-pct">0%</div>
+        <div class="scan-label">ANALYSIS</div>
+      </div>
+      <div class="panel-separator"></div>
+
+      <div class="panel-header">SUBSYSTEMS</div>
+      <div class="subsystem">
+        <span class="sub-label">AERODYNAMICS</span>
+        <div class="sub-bar"><div class="sub-fill" style="width:96%"></div></div>
+        <span class="sub-val">96%</span>
+      </div>
+      <div class="subsystem">
+        <span class="sub-label">POWERTRAIN</span>
+        <div class="sub-bar"><div class="sub-fill" style="width:91%"></div></div>
+        <span class="sub-val">91%</span>
+      </div>
+      <div class="subsystem">
+        <span class="sub-label">TIRES</span>
+        <div class="sub-bar"><div class="sub-fill" style="width:78%"></div></div>
+        <span class="sub-val">78%</span>
+      </div>
+      <div class="subsystem">
+        <span class="sub-label">BRAKES</span>
+        <div class="sub-bar"><div class="sub-fill" style="width:93%"></div></div>
+        <span class="sub-val">93%</span>
+      </div>
+      <div class="subsystem">
+        <span class="sub-label">DRS</span>
+        <div class="sub-bar"><div class="sub-fill" style="width:100%"></div></div>
+        <span class="sub-val">100%</span>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="hud-panel hud-right">
+      <div class="panel-header">HAND TRACKING</div>
+      <div class="panel-row"><span class="row-label">DETECTED</span><span class="row-value" id="hand-count">0 HANDS</span></div>
+      <div class="panel-row"><span class="row-label">GESTURE</span><span class="row-value gesture-text" id="current-gesture">NONE</span></div>
+      <div class="panel-row"><span class="row-label">CONFIDENCE</span><span class="row-value" id="hand-conf">--</span></div>
+      <div class="panel-separator"></div>
+
+      <div class="panel-header">VIEW MODE</div>
+      <div class="mode-btns">
+        <button class="mode-btn active" id="btn-hologram" onclick="setMode('hologram')">HOLOGRAM</button>
+        <button class="mode-btn" id="btn-xray" onclick="setMode('xray')">X-RAY</button>
+        <button class="mode-btn" id="btn-wireframe" onclick="setMode('wireframe')">WIREFRAME</button>
+        <button class="mode-btn" id="btn-solid" onclick="setMode('solid')">SOLID</button>
+        <button class="mode-btn" style="grid-column: span 2; border-color: #00f5ff; color: #00f5ff; margin-top: 8px;" onclick="switchModel()">⮂ SWITCH MODEL</button>
+      </div>
+      <div class="panel-separator"></div>
+
+      <div class="panel-header">GESTURE CONTROLS</div>
+      <div class="control-hint"><span class="key">🖐 OPEN PALM</span> Rotate Model</div>
+      <div class="control-hint"><span class="key">🤏 PINCH</span> Zoom & Pan</div>
+      <div class="control-hint"><span class="key">👆✌ L-SIGN</span> Auto Rotate</div>
+      <div class="panel-separator"></div>
+
+      <div class="panel-header">PERFORMANCE</div>
+      <div class="panel-row"><span class="row-label">FPS</span><span class="row-value" id="fps-counter">--</span></div>
+      <div class="panel-row"><span class="row-label">LATENCY</span><span class="row-value" id="latency">0ms</span></div>
+      <div class="panel-row"><span class="row-label">MODEL</span><span class="row-value" id="model-status">LOADING</span></div>
+    </div>
+
+    <!-- Bottom bar -->
+    <div class="hud-bottom">
+      <div class="hud-corner hud-corner-bl"></div>
+      <div class="hud-corner hud-corner-br"></div>
+      <div class="bottom-info">
+        <span class="bottom-item">STARK INDUSTRIES © 3000</span>
+        <span class="bottom-sep">|</span>
+        <span class="bottom-item">CLEARANCE: LEVEL 7</span>
+        <span class="bottom-sep">|</span>
+        <span class="bottom-item" id="coords">θ: 0.00 φ: 0.00 R: 8.00</span>
+      </div>
+    </div>
+
+    <!-- Gesture indicator -->
+    <div class="gesture-indicator" id="gesture-indicator">
+      <div class="gi-icon" id="gi-icon">✋</div>
+      <div class="gi-label" id="gi-label">OPEN PALM</div>
+    </div>
+
+    <!-- Center cross -->
+    <div class="center-cross">
+      <div class="cc-h"></div><div class="cc-v"></div><div class="cc-ring"></div>
+    </div>
+
+    <!-- Alert toast -->
+    <div class="alert-toast" id="alert-toast"></div>
+
+    <!-- Mode label -->
+    <div class="mode-label" id="mode-label">◉ HOLOGRAPHIC MODE</div>
+  </div>
+
+  <!-- Three.js (v0.128.0) -->
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <!-- GLTFLoader (v0.128.0) -->
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
+
+  <script src="shaders.js"></script>
+  <script src="bg-scene.js"></script>
+  <script src="model-controller.js"></script>
+  <script src="hand-tracker.js"></script>
+  <script src="hud.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
